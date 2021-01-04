@@ -12,6 +12,7 @@ variable "root_domain_name" {
 }
 
 resource "aws_s3_bucket" "web_storage" {
+  // Bucket name(usually same as domain name)  
   bucket = var.www_domain_name
   acl    = "public-read"
   policy = <<POLICY
@@ -31,7 +32,6 @@ POLICY
 
   website {
     // Here we tell S3 what to use when a request comes in to the root
-    // ex. https://www.runatlantis.io
     index_document = "index.html"
   }
   tags = {
@@ -44,7 +44,7 @@ resource "aws_cloudfront_distribution" "www_distribution" {
   origin {
     // We need to set up a "custom" origin because otherwise CloudFront won't
     // redirect traffic from the root domain to the www domain, that is from
-    // runatlantis.io to www.runatlantis.io.
+    // abc.io to www.abc.io.
     custom_origin_config {
       // These are all the defaults.
       http_port              = "80"
@@ -81,10 +81,6 @@ resource "aws_cloudfront_distribution" "www_distribution" {
       }
     }
   }
-
-  // Here we're ensuring we can hit this distribution using www.runatlantis.io
-  // rather than the domain name CloudFront gives us.
-  # aliases = [var.www_domain_name]
 
   restrictions {
     geo_restriction {
