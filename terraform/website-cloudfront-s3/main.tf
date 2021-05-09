@@ -1,16 +1,23 @@
-provider "aws" {
-  region = "ap-south-1"
+variable "hosted_region" {
+  type = string
 }
 
+//default = "www.rishabh-web.io"
 variable "www_domain_name" {
-  default = "www.rishabh-web.io"
+  type        = string
+  description = "ex. www.rishabh-web.io"
 }
 
+//  default = "rishabh-web.io"
 // We'll also need the root domain (also known as zone apex or naked domain).
 variable "root_domain_name" {
-  default = "rishabh-web.io"
+  type        = string
+  description = "ex. rishabh-web.io"
 }
 
+provider "aws" {
+  region = var.hosted_region
+}
 resource "aws_s3_bucket" "web_storage" {
   // Bucket name(usually same as domain name)  
   bucket = var.www_domain_name
@@ -54,7 +61,7 @@ resource "aws_cloudfront_distribution" "www_distribution" {
     }
 
     // Here we're using our S3 bucket's URL!
-    domain_name = aws_s3_bucket.www.website_endpoint
+    domain_name = aws_s3_bucket.web_storage.website_endpoint
     // This can be any name to identify this origin.
     origin_id = var.www_domain_name
   }
@@ -88,8 +95,38 @@ resource "aws_cloudfront_distribution" "www_distribution" {
     }
   }
 
+  // # If 404 error is there then it serve index.html and frontend framework handle error accordingly 
+  custom_error_response {
+    error_code         = 404
+    response_page_path = "/index.html"
+    response_code      = 200
+  }
+
+  # If You want to add your custom certificate 
+  # viewer_certificate = {
+  #   acm_certificate_arn = "<<<arn-of-acm>>>"
+  #   ssl_support_method  = "sni-only"
+  # }
   // Here's where our certificate is loaded in!
   viewer_certificate {
     cloudfront_default_certificate = true
   }
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = "<<<hostedZoneId>>>"
+
+  name = var.root_domain_name
+
+  type = "A"
+
+  alias {
+    name = "${aws_cloudfront_distribution.www_distribution.domain_name}"
+
+    zone_id = "${aws_cloudfront_distribution.www_distribution.hosted_zone_id}"
+
+    evaluate_target_health = true
+  }
+
+  depends_on = [aws_cloudfront_distribution.www_distribution]
 }
