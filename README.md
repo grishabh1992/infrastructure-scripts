@@ -1,2 +1,2 @@
 # infrastructure-scripts
-Infrastructure Scripts for Web, Backend
+Infrastructure Scripts for Hosting Website
